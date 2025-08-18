@@ -1,0 +1,16 @@
+/* Simple default look for <lmath>…</lmath> */
+lmath {
+  display: inline-block;
+  padding: 0 0.25em;
+  border-radius: 0.25rem;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+  font-family: var(--font-monospace);
+  font-size: 0.95em;
+  line-height: 1.4;
+}
+
+/* Live Preview inline widget (class added by the editor extension) */
+.cm-lmath-widget {
+  display: inline-block;
+}

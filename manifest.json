@@ -1,0 +1,12 @@
+{
+  "id": "literate-math",
+  "name": "Literate Math",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Convert {{ ... }} to <lmath>lmath: ...</lmath> with smart typing and Live Preview widgets.",
+  "author": "You",
+  "authorUrl": "",
+  "isDesktopOnly": false,
+  "js": "build/main.js",
+  "css": "styles.css"
+}
