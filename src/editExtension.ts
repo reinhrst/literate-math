@@ -3,6 +3,7 @@ import * as math from "mathjs"
 import { OutputFormat, parseBody } from "./parse"
 import { Decoration, DecorationSet, EditorView, PluginValue, ViewPlugin, ViewUpdate, WidgetType } from "@codemirror/view"
 import { syntaxTree } from "@codemirror/language"
+import { LMathBlock } from "./core"
 
 type ValidId = string
 
@@ -108,7 +109,7 @@ class LMViewPlugin implements PluginValue {
   }
 
   private buildDecorations(view: EditorView): DecorationSet {
-    const scope = {}
+    let scope = {}
     const builder = new RangeSetBuilder<Decoration>();
     // TODO use TreeWalker to find elements
     // Then use StateField to update if any changes
@@ -127,26 +128,17 @@ class LMViewPlugin implements PluginValue {
         }
         const body = fullBody.slice(1)
         // TODO use caching
-        const {formula} = parseBody(body)
-        console.log({formula})
-        let result: string
-        try {
-          result = math.evaluate(formula, scope)
-        } catch (e) {
-          result = `Error: ${e}`
-        }
-        console.log({result})
+        const result = LMathBlock.init(body, scope)
+        const lMathBlock = result.instance
+        scope = result.newScope
 
         if (cursorInside(view, node.from, node.to)) {
           return
         }
 
-        const prettyBody = math.parse(body).toString({ parenthesis: 'auto', implicit: 'hide'})
-
         // Replace the whole `` `!body` `` span with our widget
         builder.add(node.from, node.to, Decoration.replace({
-          widget: new LMWidget(1,
-            `${prettyBody} = ${math.format(result, {notation: 'fixed', precision: 2})}`),
+          widget: new LMWidget(1, lMathBlock.output.type === "error" ? "Error: " + lMathBlock.output.error : lMathBlock.output.displayResult ?? ""),
           inclusive: false
         }))
       }
