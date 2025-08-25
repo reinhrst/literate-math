@@ -65,7 +65,7 @@ const defaultOutputFormat: OutputFormat = {
   showResult: false
 }
 
-class ResultParseError extends Error {}
+export class ResultParseError extends Error {}
 
 function parseResult(result: string | undefined): OutputFormat["showResult"] {
   if (result === undefined) {

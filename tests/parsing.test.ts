@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseBody } from "../src/parse";
+import { parseBody, ResultParseError } from "../src/parse";
 
 describe("testParsingRules", () => {
   it("parses correctly", () => {
@@ -41,6 +41,11 @@ describe("testParsingRules", () => {
       format: {showAssign: false, showExpression: false, showResult: {unit: "m^2", numberFormat: undefined}}})
     expect(parseBody("={.5G; m^2}hello")).to.deep.equal({formula: "hello",
       format: {showAssign: false, showExpression: false, showResult: {unit: "m^2", numberFormat: {type: "g", digits: 5}}}})
+  })
+  it("throws errors", () => {
+    expect(() => parseBody("={.5H; m^2}hello")).toThrow(ResultParseError)
+    expect(() => parseBody("={; m ; 2}hello")).toThrow(ResultParseError)
+    expect(() => parseBody("={m^2}hello")).toThrow(ResultParseError)
   })
 })
 
