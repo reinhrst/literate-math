@@ -1,3 +1,5 @@
 # deps & build
-node_modules/
-build/
+/node_modules/
+/main.js
+/main.js.map
+/styles.css

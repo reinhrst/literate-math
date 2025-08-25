@@ -14,5 +14,9 @@ module.exports = {
     "@typescript-eslint/consistent-type-definitions": ["error", "type"],
     "no-console": "warn"
   },
-  ignorePatterns: ["build/**", "node_modules/**"]
+  ignorePatterns: [
+    "node_modules/**",
+    "main.js",       // generated
+    "styles.css"     // generated
+  ]
 };

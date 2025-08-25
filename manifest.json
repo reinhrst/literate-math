@@ -7,6 +7,6 @@
   "author": "You",
   "authorUrl": "",
   "isDesktopOnly": false,
-  "js": "build/main.js",
+  "js": "main.js",
   "css": "styles.css"
 }

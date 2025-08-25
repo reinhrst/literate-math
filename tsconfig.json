@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
-    "target": "ES2021",
+    "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "lib": ["ES2021", "DOM"],
+    "lib": ["ES2022", "DOM"],
     "strict": true,
     "noImplicitAny": true,
     "noUncheckedIndexedAccess": true,
@@ -12,8 +12,9 @@
     "skipLibCheck": true,
     "declaration": false,
     "sourceMap": true,
-    "outDir": "build"
+    "outDir": ".",              // not actually used by esbuild, but harmless
+    "rootDir": "src"
   },
-  "include": ["**/*.ts", "**/*.mjs"],
-  "exclude": ["node_modules", "build"]
+  "include": ["src/**/*.ts", "esbuild.config.mjs", "vitest.config.ts", "tests/**/*.ts"],
+  "exclude": ["node_modules", "main.js"]
 }
