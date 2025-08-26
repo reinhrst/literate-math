@@ -82,13 +82,18 @@ class LMWidget extends WidgetType {
   }
 }
 
-function cursorInside(view: EditorView, from: number, to: number): boolean {
-  // “Inside” means strictly between from and to (not at edges).
+let mouseButtonIsDown = false
+
+function shouldDecorate(view: EditorView, from: number, to: number): boolean {
   for (const r of view.state.selection.ranges) {
-    const pos = r.head; // you can also consider anchor if you like
-    if (pos >= from && pos <= to) return true;
+    const tail = r.from === r.head ? r.to : r.from
+    if (mouseButtonIsDown) {
+      if (tail <= to && tail >= from) return false;
+    } else {
+      if (r.from <= to && r.to >= from) return false;
+    }
   }
-  return false;
+  return true;
 }
 
 class LMViewPlugin implements PluginValue {
@@ -116,13 +121,28 @@ class LMViewPlugin implements PluginValue {
     // Finally use buildDecorations to only build those decorations in view
     //
     const tree = syntaxTree(view.state)
+    let openingTagSize: number | undefined = undefined
 
     tree.iterate({
-      enter(node) {
+      enter: (node) => {
         if (node.type.name !== "inline-code") {
+          if (node.type.name === "formatting_formatting-code_inline-code") {
+            openingTagSize = node.to - node.from
+          } else {
+            openingTagSize = undefined
+          }
           return
         }
-        const fullBody = view.state.sliceDoc(node.from, node.to);
+        let tagSize = openingTagSize
+        if (tagSize === undefined) {
+          console.warn("openingTagSize is undefined")
+          tagSize = 1
+        }
+        const innerFrom = node.from
+        const innerTo = node.to
+        const outerFrom = innerFrom - tagSize
+        const outerTo = innerTo + tagSize
+        const fullBody = view.state.sliceDoc(innerFrom, innerTo);
         if (fullBody[0] !== "!") {
           return
         }
@@ -132,12 +152,12 @@ class LMViewPlugin implements PluginValue {
         const lMathBlock = result.instance
         scope = result.newScope
 
-        if (cursorInside(view, node.from, node.to)) {
+        if (!shouldDecorate(view, outerFrom, outerTo)) {
           return
         }
 
         // Replace the whole `` `!body` `` span with our widget
-        builder.add(node.from, node.to, Decoration.replace({
+        builder.add(outerFrom, outerTo, Decoration.replace({
           widget: new LMWidget(1, lMathBlock.output.type === "error" ? "Error: " + lMathBlock.output.error : lMathBlock.output.displayResult ?? ""),
           inclusive: false
         }))
@@ -149,5 +169,19 @@ class LMViewPlugin implements PluginValue {
 }
 
 export const lmViewPlugin = ViewPlugin.fromClass(LMViewPlugin, {
-  decorations: v => v.decos
+  decorations: v => v.decos,
+  eventHandlers: {
+    mousedown: function(e: MouseEvent, view: EditorView) {
+      if (e.button !== 0) return; // Left click only
+      mouseButtonIsDown = true;
+      // Request an update to re-evaluate decorations
+      view.requestMeasure();
+    },
+    mouseup: function(e: MouseEvent, view: EditorView) {
+      if (e.button !== 0) return; // Left click only
+      mouseButtonIsDown = false;
+      // Request an update to re-evaluate decorations
+      view.requestMeasure();
+    }
+  }
 });

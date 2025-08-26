@@ -110,16 +110,15 @@ export class LMathBlock {
       partsToShow.push(extractExpressionPart(ast))
     }
     if (format.showResult) {
-      const formatNumber = (x: number): string => {
-        return x.toPrecision(3)
-      }
-      if (math.isNumber(resultValue)) {
-        partsToShow.push(formatNumber(resultValue))
-      }
-      if (math.isUnit(resultValue)) {
-        const bestUnit = resultValue.toBest()
-        partsToShow.push(math.format(bestUnit))
-      }
+      const formatOptions: math.FormatOptions = format.showResult.numberFormat === undefined
+        ? {notation: "auto"}
+        : format.showResult.numberFormat.type === "f"
+        ? {notation: "fixed", precision: format.showResult.numberFormat.digits}
+        : {notation: "exponential", precision: format.showResult.numberFormat.digits}
+        const formatUnit = format.showResult.unit === undefined
+        ? resultValue.toBest()
+        : resultValue.to(format.showResult.unit)
+        partsToShow.push(math.format(formatUnit, formatOptions))
     }
     return {
       instance: new LMathBlock(body, {
