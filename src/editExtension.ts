@@ -1,66 +1,7 @@
 import { RangeSetBuilder} from "@codemirror/state"
-import * as math from "mathjs"
-import { OutputFormat, parseBody } from "./parse"
 import { Decoration, DecorationSet, EditorView, PluginValue, ViewPlugin, ViewUpdate, WidgetType } from "@codemirror/view"
 import { syntaxTree } from "@codemirror/language"
 import { LMathBlock } from "./core"
-
-type ValidId = string
-
-class LMElement {
-  static counter: number = 0
-
-  private constructor(
-    readonly id: number,
-    readonly from: number,
-    readonly to: number,
-    readonly formula: {
-      readonly raw: string
-      readonly formula: string
-      readonly format: OutputFormat
-    },
-    readonly result: {
-      readonly type: "ok"
-      readonly value: string
-      afterCalculationScope: math.MathScope
-      // readonly assigns: ValidId | null,  needed for reference tracking
-      // readonly references: ReadonlyArray<ValidId>, needed for refrenece tracking
-    } | {
-      readonly type: "error"
-      readonly error: string
-    }
-  )
-  {}
-
-  static new (
-    from: number,
-    to: number,
-    body: string,
-    previousScope: math.MathScope | undefined
-  ) {
-    // At this point the reference tracking could be done, later
-    const {formula, format} = parseBody(body)
-    const scope = math.clone(previousScope ?? Object.create(null))
-    try {
-      const result = math.evaluate(formula, scope)
-      return new LMElement(
-        LMElement.counter++,
-        from, to,
-        {raw: body, formula, format},
-        {type: "ok", value: result, afterCalculationScope: scope})
-    } catch (e) {
-      return new LMElement(
-        LMElement.counter++,
-        from, to,
-        {raw: body, formula, format},
-        {type: "error", error: (e as Error).message})
-    }
-  }
-
-  withNewPositions(from: number, to: number): LMElement {
-    return new LMElement(this.id, from, to, this.formula, this.result)
-  }
-}
 
 class LMWidget extends WidgetType {
   constructor(readonly id: number, readonly value: string) { super(); }
