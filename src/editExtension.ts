@@ -176,12 +176,14 @@ export const lmViewPlugin = ViewPlugin.fromClass(LMViewPlugin, {
       mouseButtonIsDown = true;
       // Request an update to re-evaluate decorations
       view.requestMeasure();
-    },
-    mouseup: function(e: MouseEvent, view: EditorView) {
-      if (e.button !== 0) return; // Left click only
-      mouseButtonIsDown = false;
-      // Request an update to re-evaluate decorations
-      view.requestMeasure();
+      const onMouseUp = (e: MouseEvent) => {
+        if (e.button !== 0) return; // Left click only
+        mouseButtonIsDown = false;
+        // Request an update to re-evaluate decorations
+        view.requestMeasure();
+        document.removeEventListener("mouseup", onMouseUp)
+      }
+      document.addEventListener("mouseup", onMouseUp)
     }
   }
 });
