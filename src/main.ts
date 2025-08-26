@@ -8,11 +8,6 @@ import {
   Extension
 } from "@codemirror/state";
 import { LMathBlock } from "./core";
-import type { MathScope } from "mathjs"
-
-type ContextWithScope = MarkdownPostProcessorContext & {
-  mathScope?: MathScope
-}
 
 /** Bundle editor extensions together for easy registration. */
 function createEditorExtensions(): Extension[] {
@@ -27,30 +22,45 @@ export default class LiterateMathPlugin extends Plugin {
     // Live Preview editor behaviors + widgets
     this.cmExtensions = createEditorExtensions();
     this.registerEditorExtension(this.cmExtensions);
-    this.registerMarkdownPostProcessor(this.markdownPostProcessor.bind(this))
+    this.registerMarkdownPostProcessor(this.markdownPostProcessor.bind(this), 11)
   }
 
   onunload(): void {
     // Extensions are automatically unregistered by Obsidian when the plugin unloads.
   }
-  async markdownPostProcessor(el: HTMLElement, ctx: ContextWithScope) {
+  async markdownPostProcessor(el: HTMLElement, ctx: MarkdownPostProcessorContext) {
     const codeNodes = el.querySelectorAll("code");
-    if (ctx.mathScope === undefined) {
-      ctx.mathScope = {}
+    if (codeNodes.length === 0) {
+      return
     }
-    for (const node of codeNodes) {
+    let guard = 1000
+    while (guard-- > 0 && !el.closest('.markdown-preview-view')) {
+      // sleep until document as a whole is ready
+      await new Promise(resolve => window.setTimeout(resolve, 1))
+    }
+    const doc = el.closest('.markdown-preview-view')
+    if (!doc) {
+      console.warn("Did not find document")
+      return
+    }
+    if (doc.hasAttribute("x--data-lmath-ran")) {
+      console.log("Already ran")
+    }
+    doc.setAttribute("x--data-lmath-ran", "1")
+    let scope = {}
+    for (const node of doc.querySelectorAll("code")) {
       if (node.innerText.at(0) !== "!") {
-        return
+        continue
       }
       const body = node.innerText.slice(1)
-      const result = LMathBlock.init(body, ctx.mathScope)
+      const result = LMathBlock.init(body, scope)
       const lMathBlock = result.instance
-      ctx.mathScope = result.newScope
+      scope = result.newScope
 
       const el = document.createElement("lmath")
       el.innerText=lMathBlock.output.type === "ok"
-      ? lMathBlock.output.displayResult ?? ""
-      : `\u26A0 ${lMathBlock.output.error} \u26A0`
+        ? lMathBlock.output.displayResult ?? ""
+        : `\u26A0 ${lMathBlock.output.error} \u26A0`
       node.replaceWith(el);
     }
   }
