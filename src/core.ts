@@ -115,10 +115,14 @@ export class LMathBlock {
         : format.showResult.numberFormat.type === "f"
         ? {notation: "fixed", precision: format.showResult.numberFormat.digits}
         : {notation: "exponential", precision: format.showResult.numberFormat.digits}
+      try {
         const formatUnit = format.showResult.unit === undefined
         ? resultValue.toBest()
         : resultValue.to(format.showResult.unit)
         partsToShow.push(math.format(formatUnit, formatOptions))
+      } catch (e) {
+        return createErrorBlock((e as Error).message)
+      }
     }
     return {
       instance: new LMathBlock(body, {
