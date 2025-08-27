@@ -90,7 +90,7 @@ export class LMathBlock {
         newScope: scope
       }
     }
-    if (Array.isArray(ast)) {
+    if ("blocks" in ast && Array.isArray(ast.blocks) && ast.blocks.length > 1) {
       return createErrorBlock("Multiple statements not allowed inline with output")
     }
 
@@ -103,7 +103,10 @@ export class LMathBlock {
       try {
         partsToShow.push(extractAssignmentPart(ast))
       } catch (e) {
-        return createErrorBlock((e as Error).message)
+        if ((e as Error).message === "Cannot extract assignment section") {
+          return createErrorBlock("Cannot show assignment ($) when formula has no assignment")
+        }
+        throw e
       }
     }
     if (format.showExpression) {
@@ -116,9 +119,25 @@ export class LMathBlock {
         ? {notation: "fixed", precision: format.showResult.numberFormat.digits}
         : {notation: "exponential", precision: format.showResult.numberFormat.digits}
       try {
-        const formatUnit = format.showResult.unit === undefined
-        ? resultValue.toBest()
-        : resultValue.to(format.showResult.unit)
+        const formatUnit = (() => {
+          const unit = format.showResult.unit
+          if (resultValue instanceof math.Unit) {
+            if (unit === null) {
+              throw new Error(`Failed to convert "${resultValue}" into a unitless number`)
+            }
+            return unit === undefined
+              ? resultValue.toBest()
+              : resultValue.to(unit)
+          }
+          if (typeof resultValue === "number") {
+            if (format.showResult.unit !== undefined
+              && format.showResult.unit !== null
+              && format.showResult.unit !== "") {
+              throw new Error(`Failed to apply unit "${unit}" to the unitless number ${resultValue}`)
+            }
+          }
+          return resultValue
+        })()
         partsToShow.push(math.format(formatUnit, formatOptions))
       } catch (e) {
         return createErrorBlock((e as Error).message)
