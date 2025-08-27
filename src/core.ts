@@ -113,8 +113,8 @@ export class LMathBlock {
       partsToShow.push(extractExpressionPart(ast))
     }
     if (format.showResult) {
-      const formatOptions: math.FormatOptions = format.showResult.numberFormat === undefined
-        ? {notation: "auto"}
+      const formatOptions: (math.FormatOptions | ((n: number) => string)) = format.showResult.numberFormat === undefined
+        ? defaultNumberFormatter
         : format.showResult.numberFormat.type === "f"
         ? {notation: "fixed", precision: format.showResult.numberFormat.digits}
         : {notation: "exponential", precision: format.showResult.numberFormat.digits}
@@ -161,4 +161,27 @@ export class LMathBlock {
       : this.output.error
     return el
   }
+}
+
+function defaultNumberFormatter(n: number): string {
+  const MAX_NUMBER_LENGTH = 5
+  const MAX_LEADING_ZEROS_AFTER_DECIMAL = 4
+  const MIN_PRECISION = 3
+  const naive = n.toString()
+  if (naive.length < MAX_NUMBER_LENGTH) {
+    return naive
+  }
+  const a = Math.abs(n)
+  const showIntOnly = a >= Math.pow(10, MIN_PRECISION)
+  const showExpLarge = a >= Math.pow(10, MAX_NUMBER_LENGTH + 1)
+  const showExpSmall = a < Math.pow(10, -MAX_LEADING_ZEROS_AFTER_DECIMAL)
+  const complex = showExpLarge || showExpSmall ? n.toExponential(MIN_PRECISION - 1)
+      : showIntOnly ? n.toFixed(0)
+        : n.toPrecision(MIN_PRECISION)
+  const parts = complex.split("e")
+  if (parts[0]!.indexOf(".") !== -1) {
+    parts[0] = parts[0]!.replace(/0*$/, "") // remove trailing 0s after .
+  }
+  parts[0] = parts[0]!.replace(/\.$/, "") // remove trailing dot
+  return parts.join("e")
 }
