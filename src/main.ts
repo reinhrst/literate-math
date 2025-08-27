@@ -8,6 +8,7 @@ import {
   Extension
 } from "@codemirror/state";
 import { LMathBlock } from "./core";
+import * as math from "mathjs"
 
 /** Bundle editor extensions together for easy registration. */
 function createEditorExtensions(): Extension[] {
@@ -18,6 +19,8 @@ export default class LiterateMathPlugin extends Plugin {
   private cmExtensions: Extension[] = [];
 
   async onload(): Promise<void> {
+
+    math.createUnit("EUR")
 
     // Live Preview editor behaviors + widgets
     this.cmExtensions = createEditorExtensions();
