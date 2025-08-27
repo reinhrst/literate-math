@@ -30,12 +30,8 @@ async function doBuild() {
   });
 
   // ensure root dir exists (it does), then copy CSS
-  try {
-    await readFile(srcCss, "utf8"); // throws if missing
-    await copyFile(srcCss, outCss);
-  } catch {
-    // If you don’t keep a styles.css yet, silently skip
-  }
+  await readFile(srcCss, "utf8"); // throws if missing
+  await copyFile(srcCss, outCss);
 }
 
 if (isWatch) {
