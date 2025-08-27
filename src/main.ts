@@ -57,11 +57,7 @@ export default class LiterateMathPlugin extends Plugin {
       const lMathBlock = result.instance
       scope = result.newScope
 
-      const el = document.createElement("lmath")
-      el.innerText=lMathBlock.output.type === "ok"
-        ? lMathBlock.output.displayResult ?? ""
-        : `\u26A0 ${lMathBlock.output.error} \u26A0`
-      node.replaceWith(el);
+      node.replaceWith(lMathBlock.toDomElement(document))
     }
   }
 }

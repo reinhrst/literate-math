@@ -1,4 +1,3 @@
-/* Simple default look for <lmath>…</lmath> */
 lmath {
   display: inline-block;
   padding: 0 0.25em;
@@ -8,4 +7,23 @@ lmath {
   font-family: var(--font-monospace);
   font-size: 0.95em;
   line-height: 1.4;
+}
+
+lmath.lmath-error {
+  background: var(--background-modifier-error);
+  position: relative;
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+lmath.lmath-error::before, lmath.lmath-error::after {
+  content: "\26A0";
+  font-size: 1.5rem;
+  position: absolute;
+  top: -.5rem;
+  left: .5rem;
+}
+lmath.lmath-error::after {
+  left: unset;
+  right: .5rem;
 }

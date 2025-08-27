@@ -130,4 +130,16 @@ export class LMathBlock {
       newScope: scope
     }
   }
+
+  toDomElement(doc: Document): HTMLElement {
+    const el = doc.createElement("lmath")
+    el.title = this.body
+    if (this.output.type === "error") {
+      el.classList.add("lmath-error")
+    }
+    el.innerText = this.output.type === "ok"
+      ? this.output.displayResult ?? ""
+      : this.output.error
+    return el
+  }
 }

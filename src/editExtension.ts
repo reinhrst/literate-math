@@ -4,18 +4,26 @@ import { syntaxTree } from "@codemirror/language"
 import { LMathBlock } from "./core"
 
 class LMWidget extends WidgetType {
-  constructor(readonly id: number, readonly value: string) { super(); }
+  constructor(readonly id: number, readonly lMathBlock: LMathBlock) { super(); }
 
   eq(other: WidgetType) {
     return other instanceof LMWidget
       && this.id === other.id
-      && this.value === other.value
+      && this.lMathBlock.body === other.lMathBlock.body
+      && (this.lMathBlock.output.type === "ok"
+        ? (
+          other.lMathBlock.output.type === "ok"
+            && this.lMathBlock.output.displayResult === other.lMathBlock.output.displayResult)
+        :
+        (
+          other.lMathBlock.output.type === "error"
+            && this.lMathBlock.output.error === other.lMathBlock.output.error
+        )
+      )
   }
 
   toDOM() {
-    const el = document.createElement("lmath")
-    el.textContent = this.value
-    return el
+    return this.lMathBlock.toDomElement(document)
   }
 
   ignoreEvent(_event: Event): boolean {
@@ -99,7 +107,7 @@ class LMViewPlugin implements PluginValue {
 
         // Replace the whole `` `!body` `` span with our widget
         builder.add(outerFrom, outerTo, Decoration.replace({
-          widget: new LMWidget(1, lMathBlock.output.type === "error" ? "Error: " + lMathBlock.output.error : lMathBlock.output.displayResult ?? ""),
+          widget: new LMWidget(1, lMathBlock),
           inclusive: false
         }))
       }
