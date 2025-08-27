@@ -102,10 +102,15 @@ class LMViewPlugin implements PluginValue {
         scope = result.newScope
 
         if (!shouldDecorate(view, outerFrom, outerTo)) {
+          if (lMathBlock.output.type === "error") {
+            console.log("marking")
+            builder.add(outerFrom, outerTo, Decoration.mark({
+              class: "lmath-error",
+            }))
+          }
           return
         }
 
-        // Replace the whole `` `!body` `` span with our widget
         builder.add(outerFrom, outerTo, Decoration.replace({
           widget: new LMWidget(1, lMathBlock),
           inclusive: false

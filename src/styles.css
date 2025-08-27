@@ -9,6 +9,10 @@ lmath {
   line-height: 1.4;
 }
 
+span.cm-inline-code > span.lmath-error {
+  color: var(--text-error);
+}
+
 lmath.lmath-error {
   background: var(--background-modifier-error);
   position: relative;
