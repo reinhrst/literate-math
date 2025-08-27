@@ -2,6 +2,7 @@ import * as math from "mathjs"
 import { OutputFormat, parseBody, ResultParseError } from "./parse";
 import { DeepReadOnly } from "./tsmagic";
 import { tryCatch } from "./util"
+import { MarkdownRenderer, renderMath } from "obsidian";
 
 
 // Type guard for AssignmentNode
@@ -29,6 +30,13 @@ function extractExpressionPart(ast: math.MathNode): string {
   return ast.toString()
 }
 
+function extractExpressionPartTex(ast: math.MathNode): string {
+  if (isAssignmentNode(ast)) {
+    return ast.value.toTex()
+  }
+  return ast.toTex()
+}
+
 export class LMathBlock {
   private constructor(
     public readonly body: string,
@@ -36,7 +44,10 @@ export class LMathBlock {
       type: "ok"
       formula: string
       format: OutputFormat
-      displayResult: string | null
+      displayResult: null | {
+        raw: string,
+        tex: string
+      }
     } | {
       type: "error"
       error: string
@@ -86,7 +97,8 @@ export class LMathBlock {
       && !format.showExpression
       && !format.showResult) {
       return {
-        instance: new LMathBlock(body, {type: "ok", formula, format, displayResult: null}),
+        instance: new LMathBlock(
+          body, {type: "ok", formula, format, displayResult: null}),
         newScope: scope
       }
     }
@@ -99,9 +111,11 @@ export class LMathBlock {
     }
 
     const partsToShow: string[] = []
+    const partsToShowTex: string[] = []
     if (format.showAssign) {
       try {
         partsToShow.push(extractAssignmentPart(ast))
+        partsToShowTex.push(extractAssignmentPart(ast))
       } catch (e) {
         if ((e as Error).message === "Cannot extract assignment section") {
           return createErrorBlock("Cannot show assignment ($) when formula has no assignment")
@@ -111,6 +125,7 @@ export class LMathBlock {
     }
     if (format.showExpression) {
       partsToShow.push(extractExpressionPart(ast))
+      partsToShowTex.push(extractExpressionPartTex(ast))
     }
     if (format.showResult) {
       const formatOptions: math.FormatOptions = format.showResult.numberFormat === undefined
@@ -139,13 +154,15 @@ export class LMathBlock {
           return resultValue
         })()
         partsToShow.push(math.format(formatUnit, formatOptions))
+        partsToShowTex.push(math.format(formatUnit, formatOptions))
       } catch (e) {
         return createErrorBlock((e as Error).message)
       }
     }
     return {
       instance: new LMathBlock(body, {
-        type: "ok", formula, format, displayResult: partsToShow.join(" = ")}),
+        type: "ok", formula, format, displayResult: {
+          raw: partsToShow.join(" = "), tex: partsToShowTex.join(" = ")}}),
       newScope: scope
     }
   }
@@ -156,9 +173,14 @@ export class LMathBlock {
     if (this.output.type === "error") {
       el.classList.add("lmath-error")
     }
-    el.innerText = this.output.type === "ok"
-      ? this.output.displayResult ?? ""
-      : this.output.error
+    if (this.output.type === "ok") {
+      if (this.output.displayResult !== null) {
+        el.innerText = `$${this.output.displayResult.tex}$`
+      }
+    } else {
+      console.assert(this.output.type === "error")
+      el.innerText = this.output.error
+    }
     return el
   }
 }
