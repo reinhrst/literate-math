@@ -48,7 +48,9 @@ export default class LiterateMathPlugin extends Plugin {
     }
     doc.setAttribute("x--data-lmath-ran", "1")
     let scope = {}
-    for (const node of doc.querySelectorAll("code")) {
+    const allCodeNodes = doc.querySelectorAll("code")
+    console.log([...allCodeNodes])
+    for (const node of allCodeNodes) {
       if (node.innerText.at(0) !== "!") {
         continue
       }

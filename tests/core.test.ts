@@ -100,14 +100,14 @@ describe("core", () => {
 
 })
 
-describe.only("number formatting", () => {
+describe("number formatting", () => {
   it("does large number formatting properly", () => {
     runAndExpectSuccess(["=10^5"], "100000")
     runAndExpectSuccess(["=10^6"], "1e+6")
     runAndExpectSuccess(["=123456"], "123456")
-    runAndExpectSuccess(["=1234567"], "1.23e+6")
-    runAndExpectSuccess(["=1204567"], "1.2e+6")
-    runAndExpectSuccess(["=1205567"], "1.21e+6")
+    runAndExpectSuccess(["=1234567"], "1.235e+6")
+    runAndExpectSuccess(["=1200457"], "1.2e+6")
+    runAndExpectSuccess(["=1200567"], "1.201e+6")
   })
   it("does small number formatting properly", () => {
     runAndExpectSuccess(["=10^-1"], "0.1")
@@ -116,21 +116,21 @@ describe.only("number formatting", () => {
     runAndExpectSuccess(["=10^-4"], "0.0001")
     runAndExpectSuccess(["=10^-5"], "1e-5")
     runAndExpectSuccess(["=10^-6"], "1e-6")
-    runAndExpectSuccess(["=0.000123456"], "0.000123")
-    runAndExpectSuccess(["=0.000123556"], "0.000124")
-    runAndExpectSuccess(["=0.0000123456"], "1.23e-5")
-    runAndExpectSuccess(["=0.0000120456"], "1.2e-5")
-    runAndExpectSuccess(["=0.0000100456"], "1e-5")
-    runAndExpectSuccess(["=0.0000100556"], "1.01e-5")
+    runAndExpectSuccess(["=0.000123456"], "0.0001235")
+    runAndExpectSuccess(["=0.0000123456"], "1.235e-5")
+    runAndExpectSuccess(["=0.0000120046"], "1.2e-5")
+    runAndExpectSuccess(["=0.0000100006"], "1e-5")
+    runAndExpectSuccess(["=0.0000100056"], "1.001e-5")
   })
   it("takes care of floating point errors", () => {
     runAndExpectSuccess(["=.1+.2"], "0.3")
   })
   it("Does something reasonable with reasonable numbers", () => {
     runAndExpectSuccess(["=123"], "123")
-    runAndExpectSuccess(["=123.4"], "123")
+    runAndExpectSuccess(["=123.4"], "123.4")
+    runAndExpectSuccess(["=123.44"], "123.4")
     runAndExpectSuccess(["=1234"], "1234")
     runAndExpectSuccess(["=1234.5"], "1235")
-    runAndExpectSuccess(["=12.345"], "12.3")
+    runAndExpectSuccess(["=12.345"], "12.35")
   })
 })

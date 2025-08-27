@@ -166,7 +166,7 @@ export class LMathBlock {
 function defaultNumberFormatter(n: number): string {
   const MAX_NUMBER_LENGTH = 5
   const MAX_LEADING_ZEROS_AFTER_DECIMAL = 4
-  const MIN_PRECISION = 3
+  const MIN_PRECISION = 4
   const naive = n.toString()
   if (naive.length < MAX_NUMBER_LENGTH) {
     return naive
