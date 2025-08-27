@@ -33,16 +33,16 @@ class LMWidget extends WidgetType {
 
 let mouseButtonIsDown = false
 
-function shouldDecorate(view: EditorView, from: number, to: number): boolean {
+function shouldShowCode(view: EditorView, from: number, to: number): boolean {
   for (const r of view.state.selection.ranges) {
     const tail = r.from === r.head ? r.to : r.from
     if (mouseButtonIsDown) {
-      if (tail <= to && tail >= from) return false;
+      if (tail <= to && tail >= from) return true;
     } else {
-      if (r.from <= to && r.to >= from) return false;
+      if (r.from <= to && r.to >= from) return true;
     }
   }
-  return true;
+  return false;
 }
 
 class LMViewPlugin implements PluginValue {
@@ -101,20 +101,28 @@ class LMViewPlugin implements PluginValue {
         const lMathBlock = result.instance
         scope = result.newScope
 
-        if (!shouldDecorate(view, outerFrom, outerTo)) {
+        if (shouldShowCode(view, outerFrom, outerTo)) {
           if (lMathBlock.output.type === "error") {
-            console.log("marking")
             builder.add(outerFrom, outerTo, Decoration.mark({
               class: "lmath-error",
             }))
           }
-          return
+          builder.add(innerFrom, innerFrom + "!".length, Decoration.mark({
+            class: "lmath-identifier",
+          }))
+          if (lMathBlock.output.type === "ok") {
+            const prefixFrom = innerFrom + "!".length
+            const prefixTo = prefixFrom + lMathBlock.output.format.rawFormat.length
+            builder.add(prefixFrom, prefixTo, Decoration.mark({
+              class: "lmath-format",
+            }))
+          }
+        } else {
+          builder.add(outerFrom, outerTo, Decoration.replace({
+            widget: new LMWidget(1, lMathBlock),
+            inclusive: false
+          }))
         }
-
-        builder.add(outerFrom, outerTo, Decoration.replace({
-          widget: new LMWidget(1, lMathBlock),
-          inclusive: false
-        }))
       }
     })
 

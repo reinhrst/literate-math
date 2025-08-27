@@ -9,6 +9,14 @@ lmath {
   line-height: 1.4;
 }
 
+.lmath-identifier {
+  color: var(--text-faint);
+}
+
+.lmath-format {
+  color: var(--text-accent);
+}
+
 span.cm-inline-code > span.lmath-error {
   color: var(--text-error);
 }

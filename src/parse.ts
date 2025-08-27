@@ -51,6 +51,7 @@ export type NumberFormat = {
 }
 
 export type OutputFormat = {
+  readonly rawFormat: string
   readonly showAssign: boolean
   readonly showExpression: boolean
   readonly showResult: false | {
@@ -60,6 +61,7 @@ export type OutputFormat = {
 }
 
 const defaultOutputFormat: OutputFormat = {
+  rawFormat: "",
   showAssign: false,
   showExpression: true,
   showResult: false
@@ -115,8 +117,9 @@ export function parseBody(
 } {
   const {prefix, no_output, assignment, expression, result, formula} = applyBodyRegexGroups(body)
   const format: OutputFormat = prefix === "" ? defaultOutputFormat
-    : no_output ? {showAssign: false, showExpression: false, showResult: false}
+    : no_output ? {rawFormat: prefix, showAssign: false, showExpression: false, showResult: false}
       : {
+        rawFormat: prefix,
         showAssign: !!assignment,
         showExpression: !!expression,
         showResult: parseResult(result)
