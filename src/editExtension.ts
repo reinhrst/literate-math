@@ -70,7 +70,6 @@ class LMViewPlugin implements PluginValue {
   }
 
   private buildDecorations(view: EditorView, showAlsoUnderCursor: boolean): DecorationSet {
-    console.log({showAlsoUnderCursor})
     let scope = {}
     const builder = new RangeSetBuilder<Decoration>();
     // TODO use TreeWalker to find elements
