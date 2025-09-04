@@ -1,7 +1,9 @@
-import { RangeSetBuilder} from "@codemirror/state"
-import { Decoration, DecorationSet, EditorView, PluginValue, ViewPlugin, ViewUpdate, WidgetType } from "@codemirror/view"
+import { Annotation, Prec, RangeSetBuilder, Transaction} from "@codemirror/state"
+import { Decoration, DecorationSet, EditorView, keymap, PluginValue, ViewPlugin, ViewUpdate, WidgetType } from "@codemirror/view"
 import { syntaxTree } from "@codemirror/language"
 import { LMathBlock } from "./core"
+export const fromMyEnter = Annotation.define<{ reason: string }>();
+
 
 class LMWidget extends WidgetType {
   constructor(readonly id: number, readonly lMathBlock: LMathBlock) { super(); }
@@ -33,7 +35,10 @@ class LMWidget extends WidgetType {
 
 let mouseButtonIsDown = false
 
-function shouldShowCode(view: EditorView, from: number, to: number): boolean {
+function shouldShowCode(view: EditorView, from: number, to: number, showAlsoUnderCursor: boolean): boolean {
+  if (showAlsoUnderCursor) {
+    return false
+  }
   for (const r of view.state.selection.ranges) {
     const tail = r.from === r.head ? r.to : r.from
     if (mouseButtonIsDown) {
@@ -49,12 +54,14 @@ class LMViewPlugin implements PluginValue {
   decos: DecorationSet;
 
   constructor(readonly view: EditorView) {
-    this.decos = this.buildDecorations(view);
+    this.decos = this.buildDecorations(view, true);
   }
 
   update(update: ViewUpdate) {
     if (update.docChanged || update.viewportChanged  || update.selectionSet) {
-      this.decos = this.buildDecorations(update.view);
+      const isFromEnter = update.transactions.some(
+        tr => tr.annotation(Transaction.userEvent) === "input.enter")
+      this.decos = this.buildDecorations(update.view, isFromEnter);
     }
   }
 
@@ -62,7 +69,8 @@ class LMViewPlugin implements PluginValue {
     // nothing to clean up for now
   }
 
-  private buildDecorations(view: EditorView): DecorationSet {
+  private buildDecorations(view: EditorView, showAlsoUnderCursor: boolean): DecorationSet {
+    console.log({showAlsoUnderCursor})
     let scope = {}
     const builder = new RangeSetBuilder<Decoration>();
     // TODO use TreeWalker to find elements
@@ -70,59 +78,79 @@ class LMViewPlugin implements PluginValue {
     // Finally use buildDecorations to only build those decorations in view
     //
     const tree = syntaxTree(view.state)
-    let openingTagSize: number | undefined = undefined
+    let openingTagFrom: number | undefined  = undefined
+    let inlineCodeNode: {from: number, to: number} | undefined = undefined
 
     tree.iterate({
+      mode: 4,
       enter: (node) => {
-        if (node.type.name !== "inline-code") {
-          if (node.type.name === "formatting_formatting-code_inline-code") {
-            openingTagSize = node.to - node.from
-          } else {
-            openingTagSize = undefined
+        // we're looking for an formatting_formatting-code_inline-code,
+        // followed by an inline-code followed by another
+        // formatting_formatting-code_inline-code
+        if (node.type.name === "inline-code") {
+          if (openingTagFrom === undefined) {
+            console.warn("No openingTag")
+            return
           }
+          if (inlineCodeNode) {
+            console.warn("Already have inlineCodeTag")
+            return
+          }
+          inlineCodeNode = {from: node.from, to: node.to}
           return
         }
-        let tagSize = openingTagSize
-        if (tagSize === undefined) {
-          console.warn("openingTagSize is undefined")
-          tagSize = 1
-        }
-        const innerFrom = node.from
-        const innerTo = node.to
-        const outerFrom = innerFrom - tagSize
-        const outerTo = innerTo + tagSize
-        const fullBody = view.state.sliceDoc(innerFrom, innerTo);
-        if (fullBody[0] !== "!") {
-          return
-        }
-        const body = fullBody.slice(1)
-        // TODO use caching
-        const result = LMathBlock.init(body, scope)
-        const lMathBlock = result.instance
-        scope = result.newScope
+        if (node.type.name === "formatting_formatting-code_inline-code") {
+          if (openingTagFrom === undefined
+            // filter out line tags with enters inside
+            || (inlineCodeNode && inlineCodeNode.to !== node.from)
+          ) {
+            inlineCodeNode = undefined
+            openingTagFrom = node.from
+            return
+          }
+          if (!inlineCodeNode) {
+            console.assert(inlineCodeNode)
+            return
+          }
+          const innerFrom = inlineCodeNode.from
+          const outerFrom = openingTagFrom
+          const innerTo = inlineCodeNode.to
+          const outerTo = node.to
+          const fullBody = view.state.sliceDoc(innerFrom, innerTo)
+          if (fullBody.at(0) !== "!") {
+            return
+          }
+          const body = fullBody.slice(1)
+          // TODO use caching
+          const result = LMathBlock.init(body, scope)
+          const lMathBlock = result.instance
+          scope = result.newScope
 
-        if (shouldShowCode(view, outerFrom, outerTo)) {
-          if (lMathBlock.output.type === "error") {
-            builder.add(outerFrom, outerTo, Decoration.mark({
-              class: "lmath-error",
+          if (shouldShowCode(view, outerFrom, outerTo, showAlsoUnderCursor)) {
+            if (lMathBlock.output.type === "error") {
+              builder.add(outerFrom, outerTo, Decoration.mark({
+                class: "lmath-error",
+              }))
+            }
+            builder.add(innerFrom, innerFrom + "!".length, Decoration.mark({
+              class: "lmath-identifier",
+            }))
+            if (lMathBlock.output.type === "ok") {
+              const prefixFrom = innerFrom + "!".length
+              const prefixTo = prefixFrom + lMathBlock.output.format.rawFormat.length
+              builder.add(prefixFrom, prefixTo, Decoration.mark({
+                class: "lmath-format",
+              }))
+            }
+          } else {
+            builder.add(outerFrom, outerTo, Decoration.replace({
+              widget: new LMWidget(1, lMathBlock),
+              inclusive: false
             }))
           }
-          builder.add(innerFrom, innerFrom + "!".length, Decoration.mark({
-            class: "lmath-identifier",
-          }))
-          if (lMathBlock.output.type === "ok") {
-            const prefixFrom = innerFrom + "!".length
-            const prefixTo = prefixFrom + lMathBlock.output.format.rawFormat.length
-            builder.add(prefixFrom, prefixTo, Decoration.mark({
-              class: "lmath-format",
-            }))
-          }
-        } else {
-          builder.add(outerFrom, outerTo, Decoration.replace({
-            widget: new LMWidget(1, lMathBlock),
-            inclusive: false
-          }))
         }
+        openingTagFrom = undefined
+        inlineCodeNode = undefined
       }
     })
 
@@ -149,3 +177,60 @@ export const lmViewPlugin = ViewPlugin.fromClass(LMViewPlugin, {
     }
   }
 });
+
+export const enterCatcher =Prec.highest(keymap.of([{
+  key: "Enter",
+  run: (view: EditorView) => {
+
+    // Basic scan: walk upward and look for code block
+    const tree = syntaxTree(view.state)
+    if (view.state.selection.main.from !== view.state.selection.main.to) {
+      // don't do anything if there is a selection
+      return false
+    }
+    const cursorOffset = view.state.selection.main.head;
+    const nodeUnderCursor = tree.resolve(cursorOffset, -1)
+    type SyntaxNode = typeof nodeUnderCursor
+
+    const handleInlineCodeNode = (node: SyntaxNode): boolean => {
+      console.assert(node.name === "inline-code")
+      const body = view.state.sliceDoc(node.from, node.to)
+      if (body[0] !== "!") {
+        return false
+      }
+      const openingTagSize = (node.prevSibling
+        && node.prevSibling.name === "formatting_formatting-code_inline-code")
+        ? node.prevSibling.to - node.prevSibling.from
+        : (() => {
+          console.warn("No prev sibling")
+          return 1
+        })()
+      const outerTo = node.to + openingTagSize
+      if (cursorOffset === outerTo) {
+        return false
+      }
+      view.dispatch({
+        selection: { anchor: outerTo},
+        scrollIntoView: true,
+        annotations: [
+          fromMyEnter.of({ reason: "enter-handler" }),
+          Transaction.userEvent.of("input.enter") // optional, but handy
+  ]
+      });
+      return true
+    }
+    if (nodeUnderCursor.type.name === "inline-code") {
+      return handleInlineCodeNode(nodeUnderCursor)
+    }
+    if (nodeUnderCursor.type.name === "formatting_formatting-code_inline-code") {
+      if (nodeUnderCursor.prevSibling?.name === "inline-code") {
+        return handleInlineCodeNode(nodeUnderCursor.prevSibling)
+      } else if (nodeUnderCursor.nextSibling?.name === "inline-code") {
+        return handleInlineCodeNode(nodeUnderCursor.nextSibling)
+      } else {
+        console.warn("Cannot find inline code node")
+      }
+    }
+    return false; // allow default Enter otherwise
+  },
+}]))

@@ -2,7 +2,7 @@ import {
     MarkdownPostProcessorContext,
   Plugin
 } from "obsidian";
-import {lmViewPlugin} from "./editExtension"
+import {enterCatcher, lmViewPlugin} from "./editExtension"
 
 import {
   Extension
@@ -12,7 +12,7 @@ import * as math from "mathjs"
 
 /** Bundle editor extensions together for easy registration. */
 function createEditorExtensions(): Extension[] {
-  return [lmViewPlugin];
+  return [enterCatcher, lmViewPlugin];
 }
 
 export default class LiterateMathPlugin extends Plugin {
