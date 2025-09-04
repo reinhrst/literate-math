@@ -63,8 +63,11 @@ export type OutputFormat = {
 const defaultOutputFormat: OutputFormat = {
   rawFormat: "",
   showAssign: false,
-  showExpression: true,
-  showResult: false
+  showExpression: false,
+  showResult: {
+    unit: undefined,
+    numberFormat: undefined
+  }
 }
 
 export class ResultParseError extends Error {}

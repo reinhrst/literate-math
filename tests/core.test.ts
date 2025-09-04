@@ -54,6 +54,14 @@ describe("core", () => {
     runAndExpectSuccess(["x = 3 m / 6", "= x ^ 2 + 5 cm^2"], "0.2505 m^2")
   })
 
+  it("will display result by default", () => {
+    runAndExpectSuccess(["x = 3 m / 6", "x ^ 2 + 5 cm^2"], "0.2505 m^2")
+  })
+
+  it("will not display assignment by default", () => {
+    runAndExpectSuccess(["x = 3 m / 6", "y=x ^ 2 + 5 cm^2"], "0.2505 m^2")
+  })
+
   it("can display arbitrary unit and numbers", () => {
     runAndExpectSuccess(["x = 3 m / 6", "@={.10f; dm2} x ^ 2 + 5 cm^2"],
       "x ^ 2 + 5 cm ^ 2 = 25.0500000000 dm2")
