@@ -36,6 +36,7 @@ export class LMathBlock {
       type: "ok"
       formula: string
       format: OutputFormat
+      assignment: string | null
       displayResult: string | null
     } | {
       type: "error"
@@ -81,12 +82,14 @@ export class LMathBlock {
       return createErrorBlock(evalResult.error.message)
 
     }
+    const result = tryCatch(() => extractAssignmentPart(ast))
+    const assignment = result.ok ? result.value : null
     const resultValue = evalResult.value
     if (!format.showAssign
       && !format.showExpression
       && !format.showResult) {
       return {
-        instance: new LMathBlock(body, {type: "ok", formula, format, displayResult: null}),
+        instance: new LMathBlock(body, {type: "ok", formula, assignment, format, displayResult: null}),
         newScope: scope
       }
     }
@@ -100,14 +103,10 @@ export class LMathBlock {
 
     const partsToShow: string[] = []
     if (format.showAssign) {
-      try {
-        partsToShow.push(extractAssignmentPart(ast))
-      } catch (e) {
-        if ((e as Error).message === "Cannot extract assignment section") {
+      if (assignment === null) {
           return createErrorBlock("Cannot show assignment ($) when formula has no assignment")
-        }
-        throw e
       }
+      partsToShow.push(assignment)
     }
     if (format.showExpression) {
       partsToShow.push(extractExpressionPart(ast))
@@ -145,20 +144,27 @@ export class LMathBlock {
     }
     return {
       instance: new LMathBlock(body, {
-        type: "ok", formula, format, displayResult: partsToShow.join(" = ")}),
+        type: "ok", assignment, formula, format, displayResult: partsToShow.join(" = ")}),
       newScope: scope
     }
   }
 
-  toDomElement(doc: Document): HTMLElement {
+  toDomElement(doc: Document, clickHandler?: HTMLElement["onclick"]): HTMLElement {
     const el = doc.createElement("lmath")
     el.title = this.body
     if (this.output.type === "error") {
       el.classList.add("lmath-error")
     }
+    if (this.output.type === "ok" && this.output.assignment !== null) {
+      el.dataset.assignment = this.output.assignment
+      el.dataset.showAssignment = this.output.format.showAssign.toString()
+    }
     el.innerText = this.output.type === "ok"
       ? this.output.displayResult ?? ""
       : this.output.error
+    if (clickHandler) {
+      el.addEventListener("mousedown", clickHandler)
+    }
     return el
   }
 }

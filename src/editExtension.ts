@@ -2,11 +2,16 @@ import { Annotation, Prec, RangeSetBuilder, Transaction} from "@codemirror/state
 import { Decoration, DecorationSet, EditorView, keymap, PluginValue, ViewPlugin, ViewUpdate, WidgetType } from "@codemirror/view"
 import { syntaxTree } from "@codemirror/language"
 import { LMathBlock } from "./core"
+import { Notice } from "obsidian"
 export const fromMyEnter = Annotation.define<{ reason: string }>();
 
 
 class LMWidget extends WidgetType {
-  constructor(readonly id: number, readonly lMathBlock: LMathBlock) { super(); }
+  constructor(
+    readonly id: number,
+    readonly lMathBlock: LMathBlock,
+    readonly clickHandler?: HTMLElement["onclick"]
+  ) { super(); }
 
   eq(other: WidgetType) {
     return other instanceof LMWidget
@@ -25,7 +30,7 @@ class LMWidget extends WidgetType {
   }
 
   toDOM() {
-    return this.lMathBlock.toDomElement(document)
+    return this.lMathBlock.toDomElement(document, this.clickHandler)
   }
 
   ignoreEvent(_event: Event): boolean {
@@ -50,6 +55,14 @@ function shouldShowCode(view: EditorView, from: number, to: number, showAlsoUnde
   return false;
 }
 
+const lmBlockOffsets: Array<{
+  outerFrom: number
+  innerFrom: number
+  innerTo: number
+  outerTo: number
+  fullBody: string
+}> = []
+
 class LMViewPlugin implements PluginValue {
   decos: DecorationSet;
 
@@ -70,15 +83,39 @@ class LMViewPlugin implements PluginValue {
   }
 
   private buildDecorations(view: EditorView, showAlsoUnderCursor: boolean): DecorationSet {
+    lmBlockOffsets.length = 0
     let scope = {}
     const builder = new RangeSetBuilder<Decoration>();
-    // TODO use TreeWalker to find elements
-    // Then use StateField to update if any changes
-    // Finally use buildDecorations to only build those decorations in view
-    //
     const tree = syntaxTree(view.state)
     let openingTagFrom: number | undefined  = undefined
     let inlineCodeNode: {from: number, to: number} | undefined = undefined
+
+    const clickHandler = (event: MouseEvent) => {
+      console.log("click")
+      const isModClick = event.metaKey || event.ctrlKey;
+      if (!isModClick) {
+        return
+      }
+      console.log("mod")
+      const assignment = (event.currentTarget as HTMLElement).dataset.assignment
+      const lmBlockOffset = findLMElementUnderCursor(view, "inner")
+      if (!lmBlockOffset) {
+        return
+      }
+      if (!assignment) {
+        new Notice("\u26A0 the clicked element does not assign its value")
+        return
+      }
+      const cursorPos = view.state.selection.main.head
+      view.dispatch({
+        changes: { from: cursorPos, insert: assignment },
+        selection: { anchor: cursorPos + assignment.length },
+        scrollIntoView: true
+      });
+
+      event.preventDefault();
+      event.stopPropagation();
+    }
 
     tree.iterate({
       mode: 4,
@@ -143,10 +180,17 @@ class LMViewPlugin implements PluginValue {
             }
           } else {
             builder.add(outerFrom, outerTo, Decoration.replace({
-              widget: new LMWidget(1, lMathBlock),
+              widget: new LMWidget(1, lMathBlock, clickHandler),
               inclusive: false
             }))
           }
+          lmBlockOffsets.push({
+            outerFrom,
+            innerFrom,
+            innerTo,
+            outerTo,
+            fullBody,
+          })
         }
         openingTagFrom = undefined
         inlineCodeNode = undefined
@@ -177,59 +221,61 @@ export const lmViewPlugin = ViewPlugin.fromClass(LMViewPlugin, {
   }
 });
 
+function findLMElementUnderCursor(
+  view: EditorView,
+  detectionRange: "outer" | "inner"
+): {
+  outerFrom: number
+  innerFrom: number
+  innerTo: number
+  outerTo: number
+  fullBody: string
+} | null
+{
+  if (view.state.selection.ranges.length !== 1) {
+    console.log("not working with multiple cursors")
+    return null
+  }
+  const r = view.state.selection.ranges[0]!
+  if (r.from !== r.to) {
+    console.debug("not working when range is selected")
+    return null
+  }
+  const cursor = r.from
+  for (const lmBlockOffset of lmBlockOffsets) {
+    const from = detectionRange === "outer" ? lmBlockOffset.outerFrom : lmBlockOffset.innerFrom
+    const to = detectionRange === "outer" ? lmBlockOffset.outerTo : lmBlockOffset.innerTo
+    if (to < cursor) {
+      // cursor is beyond this section
+      continue
+    }
+    if (from > cursor) {
+      // section is beyond cursor; since sections are in order, there is no match
+      return null
+    }
+    return lmBlockOffset
+  }
+  return null
+}
+
 export const enterCatcher =Prec.highest(keymap.of([{
   key: "Enter",
   run: (view: EditorView) => {
 
-    // Basic scan: walk upward and look for code block
-    const tree = syntaxTree(view.state)
-    if (view.state.selection.main.from !== view.state.selection.main.to) {
-      // don't do anything if there is a selection
+    const lmBlockOffset = findLMElementUnderCursor(view, "outer")
+    if (lmBlockOffset === null) {
       return false
     }
-    const cursorOffset = view.state.selection.main.head;
-    const nodeUnderCursor = tree.resolve(cursorOffset, -1)
-    type SyntaxNode = typeof nodeUnderCursor
+    const {outerTo} = lmBlockOffset
 
-    const handleInlineCodeNode = (node: SyntaxNode): boolean => {
-      console.assert(node.name === "inline-code")
-      const body = view.state.sliceDoc(node.from, node.to)
-      if (body[0] !== "!") {
-        return false
-      }
-      const openingTagSize = (node.prevSibling
-        && node.prevSibling.name === "formatting_formatting-code_inline-code")
-        ? node.prevSibling.to - node.prevSibling.from
-        : (() => {
-          console.warn("No prev sibling")
-          return 1
-        })()
-      const outerTo = node.to + openingTagSize
-      if (cursorOffset === outerTo) {
-        return false
-      }
-      view.dispatch({
-        selection: { anchor: outerTo},
-        scrollIntoView: true,
-        annotations: [
-          fromMyEnter.of({ reason: "enter-handler" }),
-          Transaction.userEvent.of("input.enter") // optional, but handy
-  ]
-      });
-      return true
-    }
-    if (nodeUnderCursor.type.name === "inline-code") {
-      return handleInlineCodeNode(nodeUnderCursor)
-    }
-    if (nodeUnderCursor.type.name === "formatting_formatting-code_inline-code") {
-      if (nodeUnderCursor.prevSibling?.name === "inline-code") {
-        return handleInlineCodeNode(nodeUnderCursor.prevSibling)
-      } else if (nodeUnderCursor.nextSibling?.name === "inline-code") {
-        return handleInlineCodeNode(nodeUnderCursor.nextSibling)
-      } else {
-        console.warn("Cannot find inline code node")
-      }
-    }
-    return false; // allow default Enter otherwise
+    view.dispatch({
+      selection: { anchor: outerTo},
+      scrollIntoView: true,
+      annotations: [
+        fromMyEnter.of({ reason: "enter-handler" }),
+        Transaction.userEvent.of("input.enter") // optional, but handy
+      ]
+    });
+    return true
   },
 }]))

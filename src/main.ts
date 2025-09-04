@@ -1,6 +1,9 @@
 import {
-    MarkdownPostProcessorContext,
-  Plugin
+  App,
+  MarkdownPostProcessorContext,
+  Plugin,
+  PluginSettingTab,
+  Setting
 } from "obsidian";
 import {enterCatcher, lmViewPlugin} from "./editExtension"
 
@@ -9,6 +12,7 @@ import {
 } from "@codemirror/state";
 import { LMathBlock } from "./core";
 import * as math from "mathjs"
+import { DEFAULT_SETTINGS, LMSettings } from "./settings";
 
 /** Bundle editor extensions together for easy registration. */
 function createEditorExtensions(): Extension[] {
@@ -17,8 +21,10 @@ function createEditorExtensions(): Extension[] {
 
 export default class LiterateMathPlugin extends Plugin {
   private cmExtensions: Extension[] = [];
+  public settings: LMSettings = undefined as unknown as LMSettings
 
   async onload(): Promise<void> {
+    await this.loadSettings()
 
     math.createUnit("EUR")
 
@@ -26,11 +32,32 @@ export default class LiterateMathPlugin extends Plugin {
     this.cmExtensions = createEditorExtensions();
     this.registerEditorExtension(this.cmExtensions);
     this.registerMarkdownPostProcessor(this.markdownPostProcessor.bind(this), 11)
+    this.addSettingTab(new LMSettingsTab(this.app, this));
   }
 
-  onunload(): void {
-    // Extensions are automatically unregistered by Obsidian when the plugin unloads.
+  async loadSettings() {
+    this.settings = {
+      ...DEFAULT_SETTINGS,
+      ...await this.loadData()
+    }
+    this.applySettings()
   }
+
+  async saveSettings() {
+    await this.saveData(this.settings);
+    this.applySettings()
+  }
+
+  applySettings() {
+    if (this.settings.mouseOverShowsAssign) {
+      document.body.classList.add("lmath-show-assign-on-hover");
+    } else {
+      document.body.classList.remove("lmath-show-assign-on-hover");
+    }
+  }
+
+  onunload(): void {}
+
   async markdownPostProcessor(el: HTMLElement, ctx: MarkdownPostProcessorContext) {
     const codeNodes = el.querySelectorAll("code");
     if (codeNodes.length === 0) {
@@ -66,3 +93,30 @@ export default class LiterateMathPlugin extends Plugin {
     }
   }
 }
+
+// Settings tab class
+export class LMSettingsTab extends PluginSettingTab {
+  plugin: LiterateMathPlugin;
+
+  constructor(app: App, plugin: LiterateMathPlugin) {
+    super(app, plugin);
+    this.plugin = plugin;
+  }
+
+  display(): void {
+    const { containerEl } = this;
+
+    containerEl.empty();
+
+    new Setting(containerEl)
+      .setName("Hover shows assignment")
+      .setDesc("When switched on, hovering over elements that do assignments shows the variable name that is being assigned to.")
+      .addToggle(toggle => toggle
+        .setValue(this.plugin.settings.mouseOverShowsAssign)
+        .onChange(async (value) => {
+          this.plugin.settings.mouseOverShowsAssign = value;
+          await this.plugin.saveSettings();
+        }));
+  }
+}
+
