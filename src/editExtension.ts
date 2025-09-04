@@ -117,7 +117,7 @@ class LMViewPlugin implements PluginValue {
           const innerTo = inlineCodeNode.to
           const outerTo = node.to
           const fullBody = view.state.sliceDoc(innerFrom, innerTo)
-          if (fullBody.at(0) !== "!") {
+          if (fullBody.at(0) !== "!" || fullBody.contains("\n")) {
             return
           }
           const body = fullBody.slice(1)
