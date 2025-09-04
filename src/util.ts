@@ -10,3 +10,9 @@ export function tryCatch<T, E = Error>(fn: () => T): Result<T, E> {
     return { ok: false, error: error as E };
   }
 }
+
+export function TSAssertType<T>(_: unknown): asserts _ is T {}
+
+export type VariableManuallyPutOutOfScope = never
+export function TSPutVariableOutOfScope(_: unknown): asserts _ is VariableManuallyPutOutOfScope {}
+
