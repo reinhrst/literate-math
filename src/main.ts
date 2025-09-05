@@ -74,12 +74,11 @@ export default class LiterateMathPlugin extends Plugin {
       return
     }
     if (doc.hasAttribute("x--data-lmath-ran")) {
-      console.log("Already ran")
+      console.debug("Already ran")
     }
     doc.setAttribute("x--data-lmath-ran", "1")
     let scope = {}
     const allCodeNodes = doc.querySelectorAll("code")
-    console.log([...allCodeNodes])
     for (const node of allCodeNodes) {
       if (node.innerText.at(0) !== "!") {
         continue

@@ -91,12 +91,10 @@ class LMViewPlugin implements PluginValue {
     let inlineCodeNode: {from: number, to: number} | undefined = undefined
 
     const clickHandler = (event: MouseEvent) => {
-      console.log("click")
       const isModClick = event.metaKey || event.ctrlKey;
       if (!isModClick) {
         return
       }
-      console.log("mod")
       const assignment = (event.currentTarget as HTMLElement).dataset.assignment
       const lmBlockOffset = findLMElementUnderCursor(view, "inner")
       if (!lmBlockOffset) {
@@ -233,7 +231,7 @@ function findLMElementUnderCursor(
 } | null
 {
   if (view.state.selection.ranges.length !== 1) {
-    console.log("not working with multiple cursors")
+    console.debug("not working with multiple cursors")
     return null
   }
   const r = view.state.selection.ranges[0]!
