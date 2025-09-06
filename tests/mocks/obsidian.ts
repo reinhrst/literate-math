@@ -1,7 +1,7 @@
 // Minimal runtime mock of the Obsidian API used by main.ts.
 // Keep it tiny; add surface only as you need it.
 
-export interface MarkdownPostProcessorContext {
+export type MarkdownPostProcessorContext = {
   sourcePath: string;
   frontmatter: Record<string, unknown> | null;
   addChild(component: unknown): void;
@@ -9,7 +9,6 @@ export interface MarkdownPostProcessorContext {
 
 export class Plugin {
   // In real Obsidian this is set; we don't need it in tests.
-  // eslint-disable-next-line @typescript-eslint/class-literal-property-style
   get app(): unknown {
     return {};
   }
@@ -27,8 +26,10 @@ export class Plugin {
 
   // Lifecycle hooks present in real API; not used in unit tests.
   // They exist so that subclassing doesn't explode at runtime.
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  async onload(): Promise<void> {}
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  onunload(): void {}
+  async onload(): Promise<void> {
+    // mock only
+  }
+  onunload(): void {
+    // mock only
+  }
 }

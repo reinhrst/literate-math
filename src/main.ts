@@ -56,9 +56,11 @@ export default class LiterateMathPlugin extends Plugin {
     }
   }
 
-  onunload(): void {}
+  onunload(): void {
+    // no unload code
+  }
 
-  async markdownPostProcessor(el: HTMLElement, ctx: MarkdownPostProcessorContext) {
+  async markdownPostProcessor(el: HTMLElement, _ctx: MarkdownPostProcessorContext) {
     const codeNodes = el.querySelectorAll("code");
     if (codeNodes.length === 0) {
       return

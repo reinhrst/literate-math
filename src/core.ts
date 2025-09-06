@@ -1,7 +1,6 @@
 import * as math from "mathjs"
 import { OutputFormat, parseBody, ResultParseError } from "./parse";
-import { DeepReadOnly } from "./tsmagic";
-import { tryCatch } from "./util"
+import { tryCatch, DeepReadOnly } from "./util"
 
 
 // Type guard for AssignmentNode
@@ -87,7 +86,7 @@ export class LMathBlock {
     const resultValue = evalResult.value
     if (!format.showAssign
       && !format.showExpression
-      && !format.showResult) {
+      && format.showResult === false) {
       return {
         instance: new LMathBlock(body, {type: "ok", formula, assignment, format, displayResult: null}),
         newScope: scope
@@ -111,7 +110,7 @@ export class LMathBlock {
     if (format.showExpression) {
       partsToShow.push(extractExpressionPart(ast))
     }
-    if (format.showResult) {
+    if (format.showResult !== false) {
       const formatOptions: (math.FormatOptions | ((n: number) => string)) = format.showResult.numberFormat === undefined
         ? defaultNumberFormatter
         : format.showResult.numberFormat.type === "f"
@@ -185,9 +184,9 @@ function defaultNumberFormatter(n: number): string {
       : showIntOnly ? n.toFixed(0)
         : n.toPrecision(MIN_PRECISION)
   const parts = complex.split("e")
-  if (parts[0]!.indexOf(".") !== -1) {
+  if (parts[0]!.includes(".")) {
     parts[0] = parts[0]!.replace(/0*$/, "") // remove trailing 0s after .
+      .replace(/\.$/, "") // remove trailing dot
   }
-  parts[0] = parts[0]!.replace(/\.$/, "") // remove trailing dot
   return parts.join("e")
 }

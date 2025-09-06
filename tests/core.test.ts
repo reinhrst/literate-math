@@ -1,15 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { LMathBlock } from "../src/core";
 
-
-function expectResult(lMath: LMathBlock, expectedResult: string) {
-  if (lMath.output.type === "error") {
-    throw new Error("Error found: " + lMath.output.error)
-  }
-  expect(lMath.output.displayResult).to.equal(expectedResult)
-}
-
-
 function runAndExpectSuccess(
   statements: string[],
   displayResult: string

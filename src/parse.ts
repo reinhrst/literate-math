@@ -41,8 +41,8 @@ export type BodyRegexGroups = {
 
 
 function applyBodyRegexGroups(body: string): BodyRegexGroups {
-  return BODY_REGEX.exec(body)!.groups! as {
-    [key: string]: string | undefined} as BodyRegexGroups
+  return BODY_REGEX.exec(body)!.groups! as
+    Record<string, string | undefined> as BodyRegexGroups
 }
 
 export type NumberFormat = {
@@ -99,7 +99,7 @@ function parseResult(result: string | undefined): OutputFormat["showResult"] {
   })()
   const unitString = semiPos === -1 ? undefined : format.slice(semiPos + 1).trim()
 
-  if (unitString) {
+  if (unitString !== undefined) {
     FORBIDDEN_UNIT_CHARS.forEach(c => {
       if (unitString.indexOf(c) !== -1) {
         throw new ResultParseError(`Found forbidden character ${JSON.stringify(c)} in unit ${JSON.stringify(unitString)}.`)

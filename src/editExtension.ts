@@ -55,13 +55,13 @@ function shouldShowCode(view: EditorView, from: number, to: number, showAlsoUnde
   return false;
 }
 
-const lmBlockOffsets: Array<{
+const lmBlockOffsets: {
   outerFrom: number
   innerFrom: number
   innerTo: number
   outerTo: number
   fullBody: string
-}> = []
+}[] = []
 
 class LMViewPlugin implements PluginValue {
   decos: DecorationSet;
@@ -100,7 +100,7 @@ class LMViewPlugin implements PluginValue {
       if (!lmBlockOffset) {
         return
       }
-      if (!assignment) {
+      if (assignment === undefined) {
         new Notice("\u26A0 the clicked element does not assign its value")
         return
       }
@@ -155,7 +155,6 @@ class LMViewPlugin implements PluginValue {
             return
           }
           const body = fullBody.slice(1)
-          // TODO use caching
           const result = LMathBlock.init(body, scope)
           const lMathBlock = result.instance
           scope = result.newScope
