@@ -8,7 +8,21 @@ permissions:
   contents: write   # needed to create releases
 
 jobs:
+  check-versions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Check package.json version
+        run: |
+          echo "v$(cat package.json| jq -r '.version')" = "v0.1.1"
+          test "v$(cat package.json| jq -r '.version')" = "v0.1.1"
+      - name: Check package.json version
+        run: |
+          echo "v$(cat manifest.json| jq -r '.version')" = "v0.1.1"
+          test "v$(cat manifest.json| jq -r '.version')" = "v0.1.1"
   ci:
+    needs: check-versions
     uses: ./.github/workflows/ci.yml
     with:
       upload_artifact_name: "dist-${{ github.ref_name }}"
