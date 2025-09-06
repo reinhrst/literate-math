@@ -15,12 +15,26 @@ jobs:
         uses: actions/checkout@v4
       - name: Check package.json version
         run: |
-          echo "v$(cat package.json| jq -r '.version')" = "v0.1.1"
-          test "v$(cat package.json| jq -r '.version')" = "v0.1.1"
-      - name: Check package.json version
+          set -euo pipefail
+          package="v$(jq -r '.version' package.json)"
+          tag="$GITHUB_REF_NAME"
+          echo "Package: $package"
+          echo "Tag:      $tag"
+          if [ "$package" != "$tag" ]; then
+            echo "::error::Tag ($tag) does not match package version ($package)"
+            exit 1
+          fi
+      - name: Check manifest.json version
         run: |
-          echo "v$(cat manifest.json| jq -r '.version')" = "v0.1.1"
-          test "v$(cat manifest.json| jq -r '.version')" = "v0.1.1"
+          set -euo pipefail
+          manifest="v$(jq -r '.version' manifest.json)"
+          tag="$GITHUB_REF_NAME"
+          echo "Manifest: $manifest"
+          echo "Tag:      $tag"
+          if [ "$manifest" != "$tag" ]; then
+            echo "::error::Tag ($tag) does not match manifest version ($manifest)"
+            exit 1
+          fi
   ci:
     needs: check-versions
     uses: ./.github/workflows/ci.yml
