@@ -20,6 +20,7 @@ lmath {
   border-right: none;
   background: var(--background-secondary);
   white-space: nowrap;
+  padding-left: .25em;
 }
 
 .lmath-identifier {

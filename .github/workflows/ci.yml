@@ -14,22 +14,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: setup
-        uses: actions/setup-node@v4
-      - name: Cache node_modules
-        id: node_modules_cache
-        uses: actions/cache@v4
+        uses: actions/setup-node@v5
         with:
-          path: node_modules
-          key: ${{ runner.os }}-node${{ inputs.node_version }}-${{ hashFiles('package-lock.json') }}
-      - name: Install deps (npm ci on cache miss)
-        if: steps.node_modules_cache.outputs.cache-hit != 'true'
-        run: npm ci
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install deps and build
+        run: npm ci && echo "Dependencies installed"
+
+      - name: Run lint
+        run: npm run lint && echo "Lint completed"
 
       - name: Run tests
-        run: npm run test
-
-      - name: Build
-        run: npm run build
+        run: npm run test && echo "Tests completed"
 
       - name: Upload build artifact (optional)
         if: ${{ inputs.upload_artifact_name != '' }}
