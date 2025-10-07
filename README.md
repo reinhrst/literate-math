@@ -32,11 +32,11 @@ and the Literate Math plugin converts this in real-time (literally while you wri
 > 
 > At the start of the season, the water will be `10 degC`, and I want to heat it to `25 degC`
 > The Specific Heat Capacity for water is `4184 J / kg / K`, the density of water is `1 kg / l`
-> My heatpump can produce `7 kW` and will run in spring with a COP of `4`.
+> My heatpump can produce `7 kW` and will run in spring with a COP of `5`.
 > The price of electricity is `0.3 EUR / kWh`
 > 
 > In total there is `41472 l` of water (`41472 kg`), needing `723` kWh of energy to heat up.
-> This will take `103.3` hours and use `180.7` kWh of electricity, costing `54.22 EUR`.
+> This will take `103.3` hours and use `144.6` kWh of electricity, costing `43.38 EUR`.
 > 
 > (Note that this assumes no loss of heat during the process)
 
@@ -90,7 +90,7 @@ Right after the initial exclamation mark (before the expression or the variable)
 
 - Using a `$` will show the assignment part (will result in an error if there is no assignment)
 - Using `@` will show the expression part
-- Using `=` will show the result. The `=` may optionally be followed by `{format; unit}`, where `format` is either `.xf` or `.xg` (`x` being a number) to specify decimals or number of significant digits. `unit` defines the unit that the result is shown in (both `format` and `unit` may be empty strings). Note that literate-math tries to format numbers is a reasonable format, but you 
+- Using `=` will show the result. The `=` may optionally be followed by `{format; unit}`, where `format` is either `.xf` or `.xg` (`x` being a number) to specify decimals or number of significant digits. `unit` defines the unit that the result is shown in (both `format` and `unit` may be empty strings). Note that literate-math tries to format numbers is a reasonable format, but you can enforce a certain way if you like.
 
 If no output format section is present, then `=` is used as default.
 
