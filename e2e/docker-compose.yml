@@ -1,0 +1,17 @@
+services:
+  e2e-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: literate-math-e2e
+    volumes:
+      - ..:/workspace:ro  # Read-only mount of project root
+      - /tmp/colima/literate-math-e2e:/test-artifacts  # Writable for artifacts
+    working_dir: /workspace
+    environment:
+      - DISPLAY=:99
+      - E2E_ARTIFACTS_DIR=/test-artifacts
+    # Keep container running for interactive use
+    stdin_open: true
+    tty: true
+    command: bash
