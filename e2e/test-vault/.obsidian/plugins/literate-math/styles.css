@@ -1,0 +1,55 @@
+lmath {
+  display: inline-block;
+  padding: 0 0.25em;
+  border-radius: 0.25rem;
+  border: var(--border-width) solid var(--background-modifier-border);
+  background: var(--background-secondary);
+  font-family: var(--font-monospace);
+  font-size: 0.95em;
+  line-height: 1.4;
+  position: relative
+}
+
+.lmath-show-assign-on-hover lmath:hover[data-assignment][data-show-assignment="false"]::before {
+  content: attr(data-assignment) " = ";
+  position: absolute;
+  top: calc(-1 * var(--border-width));
+  left: 0;
+  transform: translateX(calc(-100% + var(--border-width)));
+  border: var(--border-width) solid var(--background-modifier-border);
+  border-right: none;
+  background: var(--background-secondary);
+  white-space: nowrap;
+  padding-left: .25em;
+}
+
+.lmath-identifier {
+  color: var(--text-faint);
+}
+
+.lmath-format {
+  color: var(--text-accent);
+}
+
+span.cm-inline-code > span.lmath-error {
+  color: var(--text-error);
+}
+
+lmath.lmath-error {
+  background: var(--background-modifier-error);
+  position: relative;
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+lmath.lmath-error::before, lmath.lmath-error::after {
+  content: "\26A0";
+  font-size: 1.5rem;
+  position: absolute;
+  top: -.5rem;
+  left: .5rem;
+}
+lmath.lmath-error::after {
+  left: unset;
+  right: .5rem;
+}
