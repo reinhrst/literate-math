@@ -1,0 +1,135 @@
+name: E2E Tests
+
+on:
+  workflow_dispatch:  # Manual trigger only
+  push:
+    branches:
+      - e2e-testing
+
+jobs:
+  e2e-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install project dependencies and build plugin
+        run: |
+          npm install
+          npm run build
+
+      - name: Install Playwright
+        working-directory: e2e
+        run: |
+          npm install
+          npx playwright install chromium
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            xvfb \
+            libgbm1 \
+            libgtk-3-0 \
+            libnss3 \
+            libasound2 \
+            libxss1 \
+            libxtst6 \
+            dbus-x11 \
+            openbox \
+            xdg-utils \
+            libglu1-mesa
+
+      - name: Download and install Obsidian
+        run: |
+          wget -O obsidian.deb https://github.com/obsidianmd/obsidian-releases/releases/download/v1.7.7/obsidian_1.7.7_amd64.deb
+          sudo dpkg -i obsidian.deb || sudo apt-get install -f -y
+
+      - name: Setup test vault
+        run: |
+          mkdir -p /tmp/test-vault/.obsidian/plugins/literate-math
+
+          # Copy vault config
+          cp e2e/test-vault/.obsidian/*.json /tmp/test-vault/.obsidian/
+
+          # Copy plugin files
+          cp manifest.json /tmp/test-vault/.obsidian/plugins/literate-math/
+          cp main.js /tmp/test-vault/.obsidian/plugins/literate-math/
+          cp styles.css /tmp/test-vault/.obsidian/plugins/literate-math/
+
+          # Create test note
+          echo "# Hello LiterateMath" > /tmp/test-vault/test-note.md
+
+          # Pre-configure Obsidian to open this vault (avoid trust dialog)
+          mkdir -p ~/.config/obsidian
+          VAULT_ID=$(echo -n "/tmp/test-vault" | md5sum | cut -d' ' -f1)
+          echo "{\"vaults\":{\"$VAULT_ID\":{\"path\":\"/tmp/test-vault\",\"ts\":1000000000000,\"open\":true}}}" > ~/.config/obsidian/obsidian.json
+
+          echo "Vault setup complete:"
+          ls -la /tmp/test-vault/
+          cat ~/.config/obsidian/obsidian.json
+
+      - name: Start services and run tests
+        run: |
+          # Start D-Bus
+          dbus-daemon --session --fork --address=unix:path=/tmp/dbus-session
+          export DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/dbus-session
+
+          # Start Xvfb
+          Xvfb :99 -screen 0 1280x720x24 -ac +extension GLX +render -noreset &
+          XVFB_PID=$!
+          export DISPLAY=:99
+          sleep 2
+
+          # Start window manager
+          openbox &
+          sleep 1
+
+          # Start Obsidian with CDP
+          obsidian --no-sandbox --disable-gpu --remote-debugging-port=9222 > /tmp/obsidian.log 2>&1 &
+          OBSIDIAN_PID=$!
+
+          # Wait for CDP to be ready
+          echo "Waiting for CDP..."
+          for i in {1..30}; do
+            if curl -s http://localhost:9222/json/version > /dev/null 2>&1; then
+              echo "CDP is ready!"
+              curl -s http://localhost:9222/json/version
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "ERROR: CDP timeout"
+              cat /tmp/obsidian.log
+              exit 1
+            fi
+            sleep 1
+          done
+
+          # Run Playwright tests
+          cd e2e
+          export TEST_VAULT_PATH=/tmp/test-vault
+          npx playwright test
+          TEST_EXIT=$?
+
+          # Cleanup
+          kill $OBSIDIAN_PID 2>/dev/null || true
+          kill $XVFB_PID 2>/dev/null || true
+
+          exit $TEST_EXIT
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            e2e/test-results/
+            /tmp/obsidian.log
+          retention-days: 7
