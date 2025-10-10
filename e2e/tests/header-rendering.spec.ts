@@ -115,10 +115,19 @@ test.describe('Obsidian Plugin Tests', () => {
     await page.keyboard.press('Control+n');  // New note
     await page.waitForTimeout(1000);
 
+    // Wait for editor to be ready
+    console.log('Waiting for editor...');
+    await page.waitForSelector('.cm-content', { timeout: 5000 });
+
     // Type math expression
     console.log('Typing math expression: `!x=3m`');
-    await page.keyboard.type('Testing literate-math: `!x=3m`');
+    await page.keyboard.type('Testing literate-math: ', { delay: 50 });
+    await page.keyboard.type('`!x=3m`', { delay: 50 });
     await page.waitForTimeout(1000);
+
+    // Verify content was typed in edit mode
+    const editorContent = await page.locator('.cm-content').textContent();
+    console.log('Editor content:', editorContent);
 
     await page.screenshot({
       path: path.join(process.env.TEST_VAULT_PATH || './test-results', 'math-edit-mode.png')
@@ -136,15 +145,23 @@ test.describe('Obsidian Plugin Tests', () => {
     // Verify the math was rendered (look for lmath tag or math rendering)
     console.log('Verifying math rendering...');
 
-    // The plugin should convert `!x=3m` into rendered math
-    // Looking for either <lmath> tags or MathJax/KaTeX rendered content
-    const mathContent = page.locator('lmath, .math, mjx-container, .katex');
-    const hasMath = await mathContent.count() > 0;
+    // Check for reading view content
+    const readingView = page.locator('.markdown-preview-view');
+    const readingContent = await readingView.textContent();
+    console.log('Reading view content:', readingContent);
 
-    if (!hasMath) {
-      console.log('No math rendering found. Checking page content...');
-      const bodyText = await page.locator('body').textContent();
-      console.log('Page content:', bodyText);
+    // The plugin should convert `!x=3m` into <lmath> tags
+    const lmathElements = await page.locator('lmath').count();
+    console.log(`Found ${lmathElements} lmath elements`);
+
+    // Also check for any math-related elements
+    const mathElements = await page.locator('lmath, .math, mjx-container, .katex').count();
+    console.log(`Found ${mathElements} total math elements`);
+
+    if (lmathElements === 0) {
+      console.log('No lmath elements found. Checking HTML...');
+      const html = await readingView.innerHTML();
+      console.log('Reading view HTML:', html.substring(0, 500));
 
       // Take a screenshot for debugging
       await page.screenshot({
@@ -152,7 +169,7 @@ test.describe('Obsidian Plugin Tests', () => {
       });
     }
 
-    expect(hasMath).toBe(true);
+    expect(lmathElements).toBeGreaterThan(0);
     console.log('Math rendered successfully!');
 
     await browser.close();
