@@ -113,11 +113,13 @@ test.describe('Obsidian Plugin Tests', () => {
     // Create a new note with literate-math syntax
     console.log('Creating new note with math expression...');
     await page.keyboard.press('Control+n');  // New note
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(2000);
 
-    // Wait for editor to be ready
-    console.log('Waiting for editor...');
-    await page.waitForSelector('.cm-content', { timeout: 5000 });
+    // Click into the editor to ensure it's focused
+    console.log('Clicking into editor...');
+    const editor = page.locator('.workspace-leaf.mod-active .cm-content').first();
+    await editor.click();
+    await page.waitForTimeout(500);
 
     // Type math expression
     console.log('Typing math expression: `!x=3m`');
@@ -126,7 +128,7 @@ test.describe('Obsidian Plugin Tests', () => {
     await page.waitForTimeout(1000);
 
     // Verify content was typed in edit mode
-    const editorContent = await page.locator('.cm-content').textContent();
+    const editorContent = await editor.textContent();
     console.log('Editor content:', editorContent);
 
     await page.screenshot({
