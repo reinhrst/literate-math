@@ -31,6 +31,15 @@ jobs:
           npm install
           npx playwright install chromium
 
+      - name: Configure apt to skip documentation (speeds up install)
+        run: |
+          echo 'path-exclude /usr/share/doc/*' | sudo tee /etc/dpkg/dpkg.cfg.d/01_nodoc
+          echo 'path-exclude /usr/share/man/*' | sudo tee -a /etc/dpkg/dpkg.cfg.d/01_nodoc
+          echo 'path-exclude /usr/share/groff/*' | sudo tee -a /etc/dpkg/dpkg.cfg.d/01_nodoc
+          echo 'path-exclude /usr/share/info/*' | sudo tee -a /etc/dpkg/dpkg.cfg.d/01_nodoc
+          echo 'path-exclude /usr/share/lintian/*' | sudo tee -a /etc/dpkg/dpkg.cfg.d/01_nodoc
+          echo 'path-exclude /usr/share/linda/*' | sudo tee -a /etc/dpkg/dpkg.cfg.d/01_nodoc
+
       - name: Install test infrastructure dependencies
         run: |
           sudo apt-get update
