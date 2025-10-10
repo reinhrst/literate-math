@@ -31,25 +31,15 @@ jobs:
           npm install
           npx playwright install chromium
 
-      - name: Install system dependencies
+      - name: Install test infrastructure dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            xvfb \
-            libgbm1 \
-            libgtk-3-0 \
-            libnss3 \
-            libasound2t64 \
-            libxss1 \
-            libxtst6 \
-            dbus-x11 \
-            openbox \
-            xdg-utils \
-            libglu1-mesa
+          sudo apt-get install -y xvfb dbus-x11 openbox
 
       - name: Download and install Obsidian
         run: |
           wget -O obsidian.deb https://github.com/obsidianmd/obsidian-releases/releases/download/v1.7.7/obsidian_1.7.7_amd64.deb
+          # dpkg will fail due to missing dependencies, then apt-get install -f installs them
           sudo dpkg -i obsidian.deb || sudo apt-get install -f -y
 
       - name: Setup test vault
