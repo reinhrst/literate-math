@@ -19,17 +19,31 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Install project dependencies and build plugin
         run: |
           npm install
           npm run build
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('e2e/package.json') }}
+
       - name: Install Playwright
         working-directory: e2e
         run: |
           npm install
-          npx playwright install chromium
+          npx playwright install chromium --with-deps
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+
+      - name: Install Playwright dependencies only
+        working-directory: e2e
+        run: npm install
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
 
       - name: Configure apt to skip documentation (speeds up install)
         run: |
@@ -45,9 +59,20 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y xvfb dbus-x11 openbox
 
-      - name: Download and install Obsidian
+      - name: Cache Obsidian download
+        uses: actions/cache@v4
+        id: obsidian-cache
+        with:
+          path: obsidian.deb
+          key: obsidian-1.7.7-amd64
+
+      - name: Download Obsidian
+        if: steps.obsidian-cache.outputs.cache-hit != 'true'
         run: |
           wget -O obsidian.deb https://github.com/obsidianmd/obsidian-releases/releases/download/v1.7.7/obsidian_1.7.7_amd64.deb
+
+      - name: Install Obsidian
+        run: |
           # dpkg will fail due to missing dependencies, then apt-get install -f installs them
           sudo dpkg -i obsidian.deb || sudo apt-get install -f -y
 
