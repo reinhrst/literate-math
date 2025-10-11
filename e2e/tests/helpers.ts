@@ -71,7 +71,7 @@ export async function createFreshNote(page: Page) {
   // Create new note
   await page.keyboard.press('Control+n');
 
-  // Wait for the active editor to appear (should be empty for new note)
+  // Wait for the active editor to appear
   const editor = page.locator('.workspace-leaf.mod-active .cm-content').first();
   await editor.waitFor({ state: 'visible', timeout: 5000 });
 
@@ -81,9 +81,8 @@ export async function createFreshNote(page: Page) {
     timeout: 5000
   });
 
-  // Give a tiny bit of time for the editor to be fully ready
-  // This is a small grace period, not a sleep-based wait
-  await page.waitForTimeout(200);
+  // Wait for editor to be actually editable (has contenteditable="true")
+  await editor.evaluate((el) => el.isContentEditable);
 
   return editor;
 }
