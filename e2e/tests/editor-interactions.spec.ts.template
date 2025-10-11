@@ -1,0 +1,107 @@
+import { test, expect } from '@playwright/test';
+import {
+  connectToObsidian,
+  handleTrustDialog,
+  createFreshNote,
+  switchToReadingMode,
+  switchToEditingMode,
+  getActiveEditor,
+  getActiveReadingView,
+  typeInEditor,
+  ObsidianConnection
+} from './helpers';
+
+let obsidian: ObsidianConnection;
+
+test.describe('Editor Interaction Tests', () => {
+  test.beforeAll(async () => {
+    obsidian = await connectToObsidian();
+    await handleTrustDialog(obsidian.page);
+  });
+
+  test.afterAll(async () => {
+    await obsidian.browser.close();
+  });
+
+  // TEMPLATE: Copy this test and modify for your use case
+  test('example: multiple math expressions in one note', async () => {
+    const { page } = obsidian;
+
+    // Create a fresh note
+    const editor = await createFreshNote(page);
+
+    // Type some content with multiple expressions
+    await typeInEditor(page, 'First: `!x=3m`');
+    await page.keyboard.press('Enter');
+    await typeInEditor(page, 'Second: `!y=5kg`');
+
+    // Switch to reading mode and verify
+    await switchToReadingMode(page);
+    const readingView = await getActiveReadingView(page);
+
+    // Check for rendered content
+    const content = await readingView.textContent();
+    expect(content).toContain('3 m');
+    expect(content).toContain('5 kg');
+
+    console.log('✓ Multiple expressions rendered');
+  });
+
+  // TEMPLATE: Test for Ctrl+click behavior
+  test.skip('ctrl-click outside lmath does nothing', async () => {
+    const { page } = obsidian;
+
+    const editor = await createFreshNote(page);
+    await typeInEditor(page, 'Regular text here');
+
+    // Get cursor position
+    // Ctrl+click
+    // Verify nothing happened
+
+    console.log('✓ Ctrl-click outside lmath works correctly');
+  });
+
+  // TEMPLATE: Test for Ctrl+click inside lmath
+  test.skip('ctrl-click inside lmath opens definition', async () => {
+    const { page } = obsidian;
+
+    const editor = await createFreshNote(page);
+    await typeInEditor(page, '`!x=3m`');
+
+    // Ctrl-click on 'x'
+    // Verify popup/modal/whatever shows definition
+
+    console.log('✓ Ctrl-click inside lmath opens definition');
+  });
+
+  // TEMPLATE: Test for backspace behavior
+  test.skip('backspacing into lmath preserves expression', async () => {
+    const { page } = obsidian;
+
+    const editor = await createFreshNote(page);
+    await typeInEditor(page, 'Text `!x=3m` more text');
+
+    // Move cursor to after 'more'
+    // Backspace several times
+    // Verify expression is still intact
+
+    console.log('✓ Backspace behavior correct');
+  });
+
+  // TEMPLATE: Test for edge cases
+  test.skip('handles malformed expression gracefully', async () => {
+    const { page } = obsidian;
+
+    const editor = await createFreshNote(page);
+    await typeInEditor(page, '`!invalid expression here`');
+
+    await switchToReadingMode(page);
+    const readingView = await getActiveReadingView(page);
+
+    // Verify error handling or graceful degradation
+    const content = await readingView.textContent();
+    // expect(...) whatever behavior you want
+
+    console.log('✓ Malformed expression handled');
+  });
+});
