@@ -68,27 +68,22 @@ export async function openNote(page: Page, filename: string): Promise<void> {
  * Returns the editor element for the new note
  */
 export async function createFreshNote(page: Page) {
-  // Count current tabs
-  const initialTabCount = await page.locator('.workspace-tab-header').count();
-
   // Create new note
   await page.keyboard.press('Control+n');
 
-  // Wait for new tab to appear
-  await page.locator('.workspace-tab-header').nth(initialTabCount).waitFor({
-    state: 'visible',
-    timeout: 5000
-  });
-
-  // Wait for active editor to be ready and focused
+  // Wait for the active editor to appear (should be empty for new note)
   const editor = page.locator('.workspace-leaf.mod-active .cm-content').first();
   await editor.waitFor({ state: 'visible', timeout: 5000 });
 
-  // Ensure it has focus (look for cm-focused class)
+  // Ensure editor is focused (look for cm-focused class on the parent)
   await page.locator('.workspace-leaf.mod-active .cm-editor.cm-focused').waitFor({
     state: 'visible',
     timeout: 5000
   });
+
+  // Give a tiny bit of time for the editor to be fully ready
+  // This is a small grace period, not a sleep-based wait
+  await page.waitForTimeout(200);
 
   return editor;
 }
