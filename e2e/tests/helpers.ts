@@ -75,14 +75,17 @@ export async function createFreshNote(page: Page) {
   const editor = page.locator('.workspace-leaf.mod-active .cm-content').first();
   await editor.waitFor({ state: 'visible', timeout: 5000 });
 
-  // Ensure editor is focused (look for cm-focused class on the parent)
+  // Wait for editor to be actually editable
+  await editor.evaluate((el) => el.isContentEditable);
+
+  // Click on the editor to ensure it has focus
+  await editor.click();
+
+  // Wait for focused class to appear after click
   await page.locator('.workspace-leaf.mod-active .cm-editor.cm-focused').waitFor({
     state: 'visible',
     timeout: 5000
   });
-
-  // Wait for editor to be actually editable (has contenteditable="true")
-  await editor.evaluate((el) => el.isContentEditable);
 
   return editor;
 }
